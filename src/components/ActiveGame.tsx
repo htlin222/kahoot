@@ -2,6 +2,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { QuizSet } from '../types/quiz';
 import { GameState } from '../services/gameService';
+import { OPTION_COLORS } from '../lib/constants';
 
 interface ActiveGameProps {
   gameState: GameState;
@@ -50,10 +51,10 @@ export function ActiveGame({
             {currentQuestion.options.map((option, index) => (
               <div 
                 key={index}
-                className={`p-3 rounded-lg ${
+                className={`p-3 rounded-lg transition-colors ${
                   showingAnswer && index === currentQuestion.correctAnswer
-                    ? 'bg-green-100 border-green-500'
-                    : 'bg-gray-100'
+                    ? 'bg-green-500 text-white'
+                    : OPTION_COLORS[index]
                 }`}
               >
                 {option}
