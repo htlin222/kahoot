@@ -16,6 +16,7 @@
     "@radix-ui/react-radio-group": "^1.2.1",
     "@radix-ui/react-scroll-area": "^1.2.1",
     "@radix-ui/react-slot": "^1.0.2",
+    "@types/socket.io-client": "^1.4.36",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "cors": "^2.8.5",
@@ -29,6 +30,8 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.18.0",
     "redis": "^4.6.10",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
     "winston": "^3.11.0"
