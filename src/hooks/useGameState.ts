@@ -103,6 +103,14 @@ export function useGameState() {
     }
 
     try {
+      // Reset game state and clear players before starting new game
+      const { success, pin } = await gameService.resetGame();
+      if (success) {
+        setPinCode(pin);
+        setPlayers([]);
+      }
+
+      // Start the new game
       const newGameState = await gameService.startGame(selectedQuiz.quizId);
       setGameState(newGameState);
       // Immediately show first question after game starts

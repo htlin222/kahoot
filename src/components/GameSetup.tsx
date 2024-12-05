@@ -2,7 +2,6 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { QuizSet } from '../types/quiz';
-import { PlayerList } from './PlayerList';
 
 interface GameSetupProps {
   pinCode: string;
@@ -13,7 +12,7 @@ interface GameSetupProps {
 
 export function GameSetup({ pinCode, players, selectedQuiz, onStartGame }: GameSetupProps) {
   return (
-    <div className="space-y-8 w-full max-w-md">
+    <div className="space-y-8 w-full max-w-md mx-auto">
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4">Selected Quiz</h2>
         {selectedQuiz ? (
@@ -44,8 +43,6 @@ export function GameSetup({ pinCode, players, selectedQuiz, onStartGame }: GameS
           />
         </div>
       </div>
-
-      <PlayerList players={players} />
     </div>
   );
 }
