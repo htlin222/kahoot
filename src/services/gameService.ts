@@ -3,7 +3,7 @@ import { QuizSet } from '../types/quiz';
 const API_URL = 'http://localhost:3002';
 
 export interface GameState {
-  status: 'waiting' | 'question' | 'answer';
+  status: 'waiting' | 'question' | 'answer' | 'finished';
   currentQuestionIndex: number;
   quizId: string;
   scores: Record<string, number>;
@@ -26,6 +26,19 @@ class GameService {
     const response = await fetch(`${API_URL}/api/teacher/players`);
     const data = await response.json();
     return data.players;
+  }
+
+  async joinGame(pin: string, name: string): Promise<{ success: boolean }> {
+    const response = await fetch(`${API_URL}/api/play/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin, name })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error);
+    }
+    return response.json();
   }
 
   async startGame(quizId: string): Promise<GameState> {
@@ -52,6 +65,22 @@ class GameService {
   async nextQuestion(): Promise<GameState> {
     const response = await fetch(`${API_URL}/api/teacher/next-question`, {
       method: 'POST'
+    });
+    return response.json();
+  }
+
+  async finishGame(): Promise<GameState> {
+    const response = await fetch(`${API_URL}/api/teacher/finish-game`, {
+      method: 'POST'
+    });
+    return response.json();
+  }
+
+  async submitAnswer(playerName: string, answer: number): Promise<{ answerTime: number }> {
+    const response = await fetch(`${API_URL}/api/play/submit-answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerName, answer })
     });
     return response.json();
   }

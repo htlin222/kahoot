@@ -39,6 +39,9 @@ export class GameService {
   static async validatePin(pin) {
     try {
       const currentPin = await redisClient.get(`${GAME_KEY}:pin`);
+      if (!currentPin) {
+        throw new Error('No active game PIN found');
+      }
       return pin === currentPin;
     } catch (error) {
       logger.error('Error validating PIN:', error);
@@ -48,9 +51,13 @@ export class GameService {
 
   static async addPlayer(name) {
     try {
+      if (!name || typeof name !== 'string' || name.trim() === '') {
+        throw new Error('Invalid player name');
+      }
+
       const exists = await redisClient.sIsMember(PLAYERS_KEY, name);
       if (exists) {
-        return false;
+        throw new Error('Name already taken');
       }
       
       await redisClient.sAdd(PLAYERS_KEY, name);
@@ -149,6 +156,21 @@ export class GameService {
       return state;
     } catch (error) {
       logger.error('Error moving to next question:', error);
+      throw error;
+    }
+  }
+
+  static async finishGame() {
+    try {
+      const state = await this.getGameState();
+      if (!state) throw new Error('No active game');
+
+      state.status = 'finished';
+      await redisClient.set(`${GAME_KEY}:state`, JSON.stringify(state));
+      logger.info('Game finished');
+      return state;
+    } catch (error) {
+      logger.error('Error finishing game:', error);
       throw error;
     }
   }

@@ -151,6 +151,12 @@ if (cluster.isPrimary) {
     res.json(gameState);
   }));
 
+  app.post('/api/teacher/finish-game', asyncHandler(async (req, res) => {
+    const gameState = await GameService.finishGame();
+    logger.info('Game finished');
+    res.json(gameState);
+  }));
+
   app.post('/api/play/submit-answer', asyncHandler(async (req, res) => {
     const { playerName, answer } = req.body;
     if (!playerName || answer === undefined) {
@@ -184,20 +190,20 @@ if (cluster.isPrimary) {
       return res.status(400).json({ error: 'PIN and name are required' });
     }
 
-    const isValidPin = await GameService.validatePin(pin);
-    if (!isValidPin) {
-      logger.warn('Invalid PIN attempt', { pin });
-      return res.status(400).json({ error: 'Incorrect PIN' });
-    }
+    try {
+      const isValidPin = await GameService.validatePin(pin);
+      if (!isValidPin) {
+        logger.warn('Invalid PIN attempt', { pin });
+        return res.status(400).json({ error: 'Incorrect PIN' });
+      }
 
-    const playerAdded = await GameService.addPlayer(name);
-    if (!playerAdded) {
-      logger.warn('Player name taken', { name });
-      return res.status(400).json({ error: 'Name already taken' });
+      await GameService.addPlayer(name);
+      logger.info('Player joined successfully', { pin, name });
+      res.json({ success: true });
+    } catch (error) {
+      logger.warn('Join game error', { error: error.message, pin, name });
+      return res.status(400).json({ error: error.message });
     }
-
-    logger.info('Player joined successfully', { pin, name });
-    res.json({ success: true });
   }));
 
   app.get('/api/teacher/players', asyncHandler(async (req, res) => {

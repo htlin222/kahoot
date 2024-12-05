@@ -147,6 +147,19 @@ export function useGameState() {
     }
   };
 
+  const finishGame = async () => {
+    try {
+      const newGameState = await gameService.finishGame();
+      setGameState(newGameState);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to finish game',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const resetGame = async () => {
     try {
       const { success, pin } = await gameService.resetGame();
@@ -177,6 +190,7 @@ export function useGameState() {
     startGame,
     showAnswer,
     nextQuestion,
+    finishGame,
     resetGame
   };
 }
