@@ -17,6 +17,7 @@ export function PlayView() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<QuizSet | null>(null);
+  const [lastQuestionIndex, setLastQuestionIndex] = useState<number>(-1);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,18 +41,38 @@ export function PlayView() {
     const interval = setInterval(async () => {
       try {
         const state = await gameService.getGameState();
+        
+        // If game is finished or state is null, clear interval and reset game
+        if (!state || state.status === 'finished') {
+          clearInterval(interval);
+          if (state?.status === 'finished') {
+            setGameState(state); // Set final state for results display
+          } else {
+            handleFinish(); // Reset game if state is null (game was reset)
+          }
+          return;
+        }
+
         setGameState(state);
-        if (state?.status === 'question') {
+        
+        // Reset states when moving to a new question
+        if (state?.currentQuestionIndex !== lastQuestionIndex) {
           setAnswerSubmitted(false);
           setSelectedAnswer(null);
+          setLastQuestionIndex(state?.currentQuestionIndex ?? -1);
         }
       } catch (error) {
         console.error('Error fetching game state:', error);
+        // If we get a 404, the game might have been reset
+        if (error instanceof Error && error.message.includes('404')) {
+          clearInterval(interval);
+          handleFinish();
+        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [joined]);
+  }, [joined, lastQuestionIndex]);
 
   const handleJoin = async () => {
     if (!pin || !name) {
@@ -99,7 +120,7 @@ export function PlayView() {
     }
   };
 
-  const handleFinish = async () => {
+  const handleFinish = () => {
     setJoined(false);
     setPin('');
     setName('');
@@ -107,6 +128,7 @@ export function PlayView() {
     setSelectedAnswer(null);
     setAnswerSubmitted(false);
     setCurrentQuiz(null);
+    setLastQuestionIndex(-1);
   };
 
   const getCurrentRank = () => {
@@ -189,10 +211,10 @@ export function PlayView() {
                   key={index}
                   className={`h-24 text-sm transition-colors ${
                     selectedAnswer === index 
-                      ? `${OPTION_SELECTED_COLORS[index]} text-white`
+                      ? `${OPTION_SELECTED_COLORS[index]} text-black`
                       : answerSubmitted
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : OPTION_COLORS[index]
+                      : `${OPTION_COLORS[index]} text-black`
                   }`}
                   disabled={answerSubmitted}
                   onClick={() => handleAnswerSubmit(index)}
