@@ -112,44 +112,58 @@ if (cluster.isPrimary) {
     res.json(quizzes);
   }));
 
-  app.put('/api/quiz/:quizId', asyncHandler(async (req, res) => {
-    const { quizId } = req.params;
-    const quizData = req.body;
-    if (!quizData.title || !Array.isArray(quizData.questions)) {
-      logger.warn('Invalid quiz update data', { quizId, data: quizData });
+  // Game Management Routes
+  app.post('/api/teacher/start-game', asyncHandler(async (req, res) => {
+    const { quizId } = req.body;
+    if (!quizId) {
+      return res.status(400).json({ error: 'Quiz ID is required' });
+    }
+
+    const quiz = await QuizService.getQuiz(quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    const gameState = await GameService.startGame(quizId);
+    logger.info('Game started', { quizId });
+    res.json(gameState);
+  }));
+
+  app.get('/api/game/state', asyncHandler(async (req, res) => {
+    const gameState = await GameService.getGameState();
+    if (!gameState) {
+      return res.status(404).json({ error: 'No active game' });
+    }
+    res.json(gameState);
+  }));
+
+  app.post('/api/teacher/next-question', asyncHandler(async (req, res) => {
+    const gameState = await GameService.nextQuestion();
+    logger.info('Moving to next question', { 
+      questionIndex: gameState.currentQuestionIndex 
+    });
+    res.json(gameState);
+  }));
+
+  app.post('/api/play/submit-answer', asyncHandler(async (req, res) => {
+    const { playerName, answer } = req.body;
+    if (!playerName || answer === undefined) {
       return res.status(400).json({ 
-        error: 'Invalid quiz data',
-        details: 'Quiz must include title and questions array'
+        error: 'Player name and answer are required' 
       });
     }
-    const quiz = await QuizService.updateQuiz(quizId, { ...quizData, quizId });
-    if (!quiz) {
-      logger.warn(`Quiz not found for update: ${quizId}`);
-      return res.status(404).json({ error: 'Quiz not found' });
-    }
-    logger.info(`Quiz updated: ${quizId}`);
-    res.json(quiz);
+
+    const result = await GameService.submitAnswer(playerName, answer);
+    logger.info('Answer submitted', { playerName, answer });
+    res.json(result);
   }));
 
-  app.delete('/api/quiz/:quizId', asyncHandler(async (req, res) => {
-    const { quizId } = req.params;
-    const deleted = await QuizService.deleteQuiz(quizId);
-    if (!deleted) {
-      logger.warn(`Quiz not found for deletion: ${quizId}`);
-      return res.status(404).json({ error: 'Quiz not found' });
-    }
-    logger.info(`Quiz deleted: ${quizId}`);
-    res.status(204).send();
+  app.get('/api/teacher/question-answers/:questionIndex', asyncHandler(async (req, res) => {
+    const { questionIndex } = req.params;
+    const answers = await GameService.getQuestionAnswers(questionIndex);
+    res.json(answers);
   }));
 
-  // New endpoint to clear all quizzes
-  app.delete('/api/quizzes', asyncHandler(async (req, res) => {
-    await QuizService.clearAllQuizzes();
-    logger.info('All quizzes cleared');
-    res.status(204).send();
-  }));
-
-  // Game Routes
   app.get('/api/teacher/pin', asyncHandler(async (req, res) => {
     const pin = await GameService.generatePin();
     logger.info('Game PIN generated', { pin });

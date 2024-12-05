@@ -70,16 +70,107 @@ export class GameService {
     }
   }
 
+  static async startGame(quizId) {
+    try {
+      const gameState = {
+        quizId,
+        status: 'waiting',
+        currentQuestionIndex: -1,
+        scores: {},
+        startTime: Date.now()
+      };
+      
+      await redisClient.set(`${GAME_KEY}:state`, JSON.stringify(gameState));
+      logger.info(`Game started with quiz: ${quizId}`);
+      return gameState;
+    } catch (error) {
+      logger.error('Error starting game:', error);
+      throw error;
+    }
+  }
+
+  static async getGameState() {
+    try {
+      const state = await redisClient.get(`${GAME_KEY}:state`);
+      return state ? JSON.parse(state) : null;
+    } catch (error) {
+      logger.error('Error getting game state:', error);
+      throw error;
+    }
+  }
+
+  static async nextQuestion() {
+    try {
+      const state = await this.getGameState();
+      if (!state) throw new Error('No active game');
+
+      state.currentQuestionIndex++;
+      state.status = 'question';
+      state.questionStartTime = Date.now();
+
+      await redisClient.set(`${GAME_KEY}:state`, JSON.stringify(state));
+      logger.info(`Moving to question ${state.currentQuestionIndex}`);
+      return state;
+    } catch (error) {
+      logger.error('Error moving to next question:', error);
+      throw error;
+    }
+  }
+
+  static async submitAnswer(playerName, answer) {
+    try {
+      const state = await this.getGameState();
+      if (!state || state.status !== 'question') {
+        throw new Error('No active question');
+      }
+
+      const answerTime = Date.now() - state.questionStartTime;
+      if (!state.scores[playerName]) {
+        state.scores[playerName] = 0;
+      }
+
+      // Store the answer and calculate score
+      const answerKey = `${GAME_KEY}:answers:${state.currentQuestionIndex}`;
+      await redisClient.hSet(answerKey, playerName, JSON.stringify({
+        answer,
+        time: answerTime
+      }));
+
+      await redisClient.set(`${GAME_KEY}:state`, JSON.stringify(state));
+      return { answerTime };
+    } catch (error) {
+      logger.error('Error submitting answer:', error);
+      throw error;
+    }
+  }
+
+  static async getQuestionAnswers(questionIndex) {
+    try {
+      const answerKey = `${GAME_KEY}:answers:${questionIndex}`;
+      const answers = await redisClient.hGetAll(answerKey);
+      return Object.entries(answers).reduce((acc, [player, answerData]) => {
+        acc[player] = JSON.parse(answerData);
+        return acc;
+      }, {});
+    } catch (error) {
+      logger.error('Error getting question answers:', error);
+      throw error;
+    }
+  }
+
   static async resetGame() {
     try {
       const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-      await Promise.all([
-        redisClient.set(`${GAME_KEY}:pin`, newPin, {
-          EX: PIN_EXPIRY
-        }),
-        redisClient.del(PLAYERS_KEY)
-      ]);
+      const keys = await redisClient.keys(`${GAME_KEY}:*`);
       
+      const pipeline = redisClient.multi();
+      keys.forEach(key => pipeline.del(key));
+      pipeline.del(PLAYERS_KEY);
+      pipeline.set(`${GAME_KEY}:pin`, newPin, {
+        EX: PIN_EXPIRY
+      });
+      
+      await pipeline.exec();
       logger.info('Game reset with new PIN:', newPin);
       return newPin;
     } catch (error) {
