@@ -109,7 +109,7 @@ export function TeacherView() {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b relative z-50">
-        <h1 className="text-3xl font-bold">Teacher View</h1>
+        <h1 className="text-3xl font-bold">Kahoot</h1>
         
         <div className="flex gap-2">
           <input

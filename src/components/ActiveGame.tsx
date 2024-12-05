@@ -46,7 +46,7 @@ export function ActiveGame({
 
       {currentQuestion && (
         <div className="space-y-8">
-          <div className="text-2xl font-medium text-center">
+          <div className="text-xl font-medium text-center">
             {currentQuestion.question}
           </div>
           

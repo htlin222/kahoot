@@ -182,25 +182,25 @@ export function PlayView() {
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-md mx-auto pt-8">
           <Card className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold text-center">Join Game</h1>
+            <h1 className="text-4xl font-bold text-center">加入測驗</h1>
             <Input
               type="text"
-              placeholder="Enter game PIN"
+              placeholder="輸入4位數PIN碼"
               value={pin}
               onChange={handlePinChange}
-              readOnly={pin.length >= 8}
-              className={pin.length >= 8 ? 'bg-gray-100' : ''}
+              readOnly={pin.length >= 6}
+              className={pin.length >= 6 ? 'bg-gray-100' : ''}
               maxLength={8}
             />
             <Input
               type="text"
-              placeholder="Enter your name"
+              placeholder="員工號+名字任意取"
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus={!!pin}
             />
-            <Button className="w-full" onClick={handleJoin}>
-              Join
+            <Button className="w-full text-xl bg-blue-900" onClick={handleJoin}>
+              加入！
             </Button>
           </Card>
         </div>
