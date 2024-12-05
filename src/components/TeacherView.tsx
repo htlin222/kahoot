@@ -55,27 +55,32 @@ export function TeacherView() {
       .catch(err => console.error('Error fetching PIN:', err));
   }, []);
 
-  // Poll for players and game state
+  // Poll for players continuously, regardless of game state
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fetch players
       fetch(`${API_URL}/api/teacher/players`)
         .then(res => res.json())
         .then(data => {
           setPlayers(data.players);
         })
         .catch(err => console.error('Error fetching players:', err));
+    }, 1000);
 
-      // Fetch game state if game is active
-      if (gameState) {
-        fetch(`${API_URL}/api/game/state`)
-          .then(res => res.json())
-          .then(data => {
-            setGameState(data);
-            setCurrentQuestion(data.currentQuestionIndex);
-          })
-          .catch(err => console.error('Error fetching game state:', err));
-      }
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll for game state when game is active
+  useEffect(() => {
+    if (!gameState) return;
+
+    const interval = setInterval(() => {
+      fetch(`${API_URL}/api/game/state`)
+        .then(res => res.json())
+        .then(data => {
+          setGameState(data);
+          setCurrentQuestion(data.currentQuestionIndex);
+        })
+        .catch(err => console.error('Error fetching game state:', err));
     }, 1000);
 
     return () => clearInterval(interval);
@@ -197,8 +202,9 @@ export function TeacherView() {
                   <Button 
                     className="w-full mt-4"
                     onClick={handleStartGame}
+                    disabled={players.length === 0}
                   >
-                    Start Game
+                    {players.length === 0 ? 'Waiting for players...' : 'Start Game'}
                   </Button>
                 </div>
               ) : (
@@ -215,6 +221,29 @@ export function TeacherView() {
                   size={256}
                   className="mx-auto"
                 />
+              </div>
+            </div>
+
+            <div className="w-full">
+              <h2 className="text-xl font-semibold mb-4">Connected Players ({players.length})</h2>
+              <div className="bg-white rounded-lg shadow p-4">
+                {players.length === 0 ? (
+                  <p className="text-gray-500 text-center">Waiting for players to join...</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {players.map((player, index) => (
+                      <li 
+                        key={index}
+                        className="p-2 bg-gray-50 rounded flex items-center gap-2"
+                      >
+                        <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
+                          {index + 1}
+                        </span>
+                        {player}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
