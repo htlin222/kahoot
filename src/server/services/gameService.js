@@ -99,6 +99,40 @@ export class GameService {
     }
   }
 
+  static async showAnswer() {
+    try {
+      const state = await this.getGameState();
+      if (!state) throw new Error('No active game');
+
+      state.status = 'answer';
+      
+      // Calculate scores based on answer times
+      const answers = await this.getQuestionAnswers(state.currentQuestionIndex);
+      const quiz = await redisClient.get(`quiz:${state.quizId}`);
+      const quizData = JSON.parse(quiz);
+      const correctAnswer = quizData.questions[state.currentQuestionIndex].correctAnswer;
+
+      // Sort answers by time and award points
+      const sortedAnswers = Object.entries(answers)
+        .sort(([, a], [, b]) => a.time - b.time);
+
+      sortedAnswers.forEach(([player, data], index) => {
+        if (data.answer === correctAnswer) {
+          // Award points based on speed: 1000 for fastest, decreasing by 100 for each position
+          const points = Math.max(1000 - (index * 100), 100);
+          state.scores[player] = (state.scores[player] || 0) + points;
+        }
+      });
+
+      await redisClient.set(`${GAME_KEY}:state`, JSON.stringify(state));
+      logger.info('Showing answer and updating scores');
+      return state;
+    } catch (error) {
+      logger.error('Error showing answer:', error);
+      throw error;
+    }
+  }
+
   static async nextQuestion() {
     try {
       const state = await this.getGameState();

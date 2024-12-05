@@ -137,6 +137,12 @@ if (cluster.isPrimary) {
     res.json(gameState);
   }));
 
+  app.post('/api/teacher/show-answer', asyncHandler(async (req, res) => {
+    const gameState = await GameService.showAnswer();
+    logger.info('Showing answer and calculating scores');
+    res.json(gameState);
+  }));
+
   app.post('/api/teacher/next-question', asyncHandler(async (req, res) => {
     const gameState = await GameService.nextQuestion();
     logger.info('Moving to next question', { 
