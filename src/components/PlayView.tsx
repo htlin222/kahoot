@@ -153,6 +153,14 @@ export function PlayView() {
     return { rank, totalPlayers, score };
   };
 
+  const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numbers and limit to 8 digits
+    if (/^\d*$/.test(value) && value.length <= 8) {
+      setPin(value);
+    }
+  };
+
   if (!joined) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -163,9 +171,10 @@ export function PlayView() {
               type="text"
               placeholder="Enter game PIN"
               value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              readOnly={!!pin}
-              className={pin ? 'bg-gray-100' : ''}
+              onChange={handlePinChange}
+              readOnly={pin.length >= 8}
+              className={pin.length >= 8 ? 'bg-gray-100' : ''}
+              maxLength={8}
             />
             <Input
               type="text"
