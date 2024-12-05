@@ -20,6 +20,15 @@ export function PlayView() {
   const [lastQuestionIndex, setLastQuestionIndex] = useState<number>(-1);
   const { toast } = useToast();
 
+  // Get PIN from URL on mount
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const pinFromUrl = searchParams.get('pin');
+    if (pinFromUrl) {
+      setPin(pinFromUrl);
+    }
+  }, []);
+
   useEffect(() => {
     if (!joined || !gameState?.quizId) return;
 
@@ -146,25 +155,30 @@ export function PlayView() {
 
   if (!joined) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Card className="w-full max-w-md p-6 space-y-4">
-          <h1 className="text-2xl font-bold text-center">Join Game</h1>
-          <Input
-            type="text"
-            placeholder="Enter game PIN"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-          />
-          <Input
-            type="text"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button className="w-full" onClick={handleJoin}>
-            Join
-          </Button>
-        </Card>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-md mx-auto pt-8">
+          <Card className="p-6 space-y-4">
+            <h1 className="text-2xl font-bold text-center">Join Game</h1>
+            <Input
+              type="text"
+              placeholder="Enter game PIN"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              readOnly={!!pin}
+              className={pin ? 'bg-gray-100' : ''}
+            />
+            <Input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus={!!pin}
+            />
+            <Button className="w-full" onClick={handleJoin}>
+              Join
+            </Button>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -183,9 +197,9 @@ export function PlayView() {
   const currentQuestion = currentQuiz?.questions[gameState?.currentQuestionIndex ?? -1];
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md p-6 space-y-4">
-        <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Welcome, {name}!</h2>
           {rankInfo && (
             <div className="text-sm text-gray-600">
@@ -201,15 +215,15 @@ export function PlayView() {
         )}
 
         {gameState?.status === 'question' && currentQuestion && (
-          <div className="space-y-4">
-            <div className="text-lg font-medium mb-4">
+          <div className="space-y-6">
+            <div className="text-2xl font-medium text-center">
               {currentQuestion.question}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 aspect-[2/1]">
               {currentQuestion.options.map((option, index) => (
                 <Button
                   key={index}
-                  className={`h-24 text-sm transition-colors ${
+                  className={`w-full h-full text-lg transition-colors ${
                     selectedAnswer === index 
                       ? `${OPTION_SELECTED_COLORS[index]} text-black`
                       : answerSubmitted
@@ -224,7 +238,7 @@ export function PlayView() {
               ))}
             </div>
             {answerSubmitted && (
-              <div className="text-center text-green-600">
+              <div className="text-center text-green-600 text-lg">
                 Answer locked in!
               </div>
             )}
@@ -251,7 +265,7 @@ export function PlayView() {
             )}
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

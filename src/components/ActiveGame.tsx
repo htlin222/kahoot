@@ -36,25 +36,28 @@ export function ActiveGame({
     }));
 
   return (
-    <div className="space-y-8 w-full max-w-md">
-      <div className="text-right mb-4">
-        <h3 className="text-lg font-semibold">Players: {players.length}</h3>
+    <div className="w-full max-w-7xl mx-auto px-4">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">
+          Question {gameState.currentQuestionIndex + 1} of {quiz.questions.length}
+        </h2>
+        <h3 className="text-lg">Players: {players.length}</h3>
       </div>
 
       {currentQuestion && (
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Question {gameState.currentQuestionIndex + 1} of {quiz.questions.length}
-          </h2>
-          <p className="mb-4">{currentQuestion.question}</p>
-          <div className="space-y-2">
+        <div className="space-y-8">
+          <div className="text-2xl font-medium text-center">
+            {currentQuestion.question}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 aspect-[2/1]">
             {currentQuestion.options.map((option, index) => (
               <div 
                 key={index}
-                className={`p-3 rounded-lg transition-colors ${
+                className={`flex items-center justify-center text-lg p-4 rounded-lg transition-colors ${
                   showingAnswer && index === currentQuestion.correctAnswer
-                    ? 'bg-green-500 text-white'
-                    : OPTION_COLORS[index]
+                    ? 'bg-green-500 text-black'
+                    : `${OPTION_COLORS[index]} text-black`
                 }`}
               >
                 {option}
@@ -63,13 +66,13 @@ export function ActiveGame({
           </div>
           
           {showingAnswer && topPlayers.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-3">Top 10 Players</h3>
-              <div className="space-y-2">
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">Top 10 Players</h3>
+              <div className="grid gap-2">
                 {topPlayers.map((player) => (
                   <div 
                     key={player.name}
-                    className={`flex justify-between items-center p-2 rounded-lg ${
+                    className={`flex justify-between items-center p-3 rounded-lg ${
                       player.rank === 1 ? 'bg-yellow-100' :
                       player.rank === 2 ? 'bg-gray-100' :
                       player.rank === 3 ? 'bg-orange-100' :
@@ -84,13 +87,13 @@ export function ActiveGame({
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
-          <div className="flex gap-4 mt-4">
+          <div className="flex gap-4">
             {!showingAnswer && (
               <Button 
-                className="flex-1"
+                className="flex-1 text-lg py-6"
                 onClick={onShowAnswer}
               >
                 Show Answer
@@ -98,24 +101,24 @@ export function ActiveGame({
             )}
             {showingAnswer && (
               <Button 
-                className="flex-1"
+                className="flex-1 text-lg py-6"
                 onClick={isLastQuestion ? onEndGame : onNextQuestion}
               >
                 {isLastQuestion ? 'End Quiz' : 'Next Question'}
               </Button>
             )}
           </div>
-        </Card>
-      )}
 
-      {!isLastQuestion && (
-        <Button
-          variant="destructive"
-          className="w-full"
-          onClick={onEndGame}
-        >
-          End Game
-        </Button>
+          {!isLastQuestion && showingAnswer && (
+            <Button
+              variant="destructive"
+              className="w-full text-lg py-6"
+              onClick={onEndGame}
+            >
+              End Game Early
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
