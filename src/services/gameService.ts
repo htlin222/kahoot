@@ -91,6 +91,14 @@ class GameService {
     });
     return response.json();
   }
+
+  async disconnect(playerName: string): Promise<void> {
+    await fetch(`${API_URL}/api/play/disconnect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerName })
+    });
+  }
 }
 
 export const gameService = new GameService();

@@ -29,6 +29,15 @@ export function PlayView() {
     }
   }, []);
 
+  // Handle disconnection on unmount
+  useEffect(() => {
+    return () => {
+      if (joined && name) {
+        gameService.disconnect(name).catch(console.error);
+      }
+    };
+  }, [joined, name]);
+
   useEffect(() => {
     if (!joined || !gameState?.quizId) return;
 
@@ -129,7 +138,14 @@ export function PlayView() {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    if (joined && name) {
+      try {
+        await gameService.disconnect(name);
+      } catch (error) {
+        console.error('Error disconnecting:', error);
+      }
+    }
     setJoined(false);
     setPin('');
     setName('');

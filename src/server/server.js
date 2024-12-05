@@ -206,6 +206,16 @@ if (cluster.isPrimary) {
     }
   }));
 
+  app.post('/api/play/disconnect', asyncHandler(async (req, res) => {
+    const { playerName } = req.body;
+    if (!playerName) {
+      return res.status(400).json({ error: 'Player name is required' });
+    }
+    await GameService.removePlayer(playerName);
+    logger.info('Player disconnected', { playerName });
+    res.json({ success: true });
+  }));
+
   app.get('/api/teacher/players', asyncHandler(async (req, res) => {
     const players = await GameService.getPlayers();
     logger.info('Players list retrieved', { count: players.length });
@@ -213,9 +223,9 @@ if (cluster.isPrimary) {
   }));
 
   app.post('/api/teacher/reset', asyncHandler(async (req, res) => {
-    const newPin = await GameService.resetGame();
-    logger.info('Game reset', { newPin });
-    res.json({ success: true, pin: newPin });
+    const result = await GameService.resetGame();
+    logger.info('Game reset', { pin: result.pin });
+    res.json(result);  // Now properly passing through the { success, pin } object
   }));
 
   // Health check endpoint

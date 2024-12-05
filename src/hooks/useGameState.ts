@@ -170,6 +170,9 @@ export function useGameState() {
 
   const resetGame = async () => {
     try {
+      // Disconnect all current players
+      await Promise.all(players.map(player => gameService.disconnect(player)));
+      
       const { success, pin } = await gameService.resetGame();
       if (success) {
         setPinCode(pin);

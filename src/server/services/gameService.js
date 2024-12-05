@@ -69,6 +69,17 @@ export class GameService {
     }
   }
 
+  static async removePlayer(name) {
+    try {
+      await redisClient.sRem(PLAYERS_KEY, name);
+      logger.info(`Player disconnected: ${name}`);
+      return true;
+    } catch (error) {
+      logger.error('Error removing player:', error);
+      throw error;
+    }
+  }
+
   static async getPlayers() {
     try {
       return await redisClient.sMembers(PLAYERS_KEY);
@@ -219,18 +230,26 @@ export class GameService {
   static async resetGame() {
     try {
       const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+      
+      // Get all game keys
       const keys = await redisClient.keys(`${GAME_KEY}:*`);
       
       const pipeline = redisClient.multi();
+      
+      // Delete all game state related keys
       keys.forEach(key => pipeline.del(key));
+      
+      // Delete all players
       pipeline.del(PLAYERS_KEY);
+      
+      // Set new PIN
       pipeline.set(`${GAME_KEY}:pin`, newPin, {
         EX: PIN_EXPIRY
       });
       
       await pipeline.exec();
       logger.info('Game reset with new PIN:', newPin);
-      return newPin;
+      return { success: true, pin: newPin };
     } catch (error) {
       logger.error('Error resetting game:', error);
       throw error;
