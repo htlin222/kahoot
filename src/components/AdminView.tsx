@@ -6,6 +6,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { useToast } from './ui/use-toast';
 import { ScrollArea } from './ui/scroll-area';
+import { Trash2, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 
 interface Question {
   question: string;
@@ -34,10 +35,25 @@ export default function AdminView() {
     options: ['', '', '', ''],
     correctAnswer: 0
   });
+  const [isLeftPaneCollapsed, setIsLeftPaneCollapsed] = useState(false);
 
   useEffect(() => {
     fetchQuizzes();
   }, []);
+
+  const validateQuizStructure = (quiz: any): quiz is QuizSet => {
+    if (!quiz || typeof quiz !== 'object') return false;
+    if (typeof quiz.title !== 'string' || !quiz.title) return false;
+    if (!Array.isArray(quiz.questions) || quiz.questions.length === 0) return false;
+    
+    return quiz.questions.every((q: any) => {
+      if (typeof q.question !== 'string' || !q.question) return false;
+      if (!Array.isArray(q.options) || q.options.length !== 4) return false;
+      if (!q.options.every((opt: any) => typeof opt === 'string' && opt)) return false;
+      if (typeof q.correctAnswer !== 'number' || q.correctAnswer < 0 || q.correctAnswer > 3) return false;
+      return true;
+    });
+  };
 
   const fetchQuizzes = async () => {
     try {
@@ -52,6 +68,44 @@ export default function AdminView() {
         variant: 'destructive'
       });
     }
+  };
+
+  const deleteQuiz = async (quizId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/quiz/${quizId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete quiz');
+      
+      toast({
+        title: 'Success',
+        description: 'Quiz deleted successfully'
+      });
+      
+      if (quizSet.quizId === quizId) {
+        setQuizSet({
+          quizId: crypto.randomUUID(),
+          title: '',
+          questions: []
+        });
+      }
+      
+      fetchQuizzes();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete quiz',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const deleteQuestion = (index: number) => {
+    setQuizSet(prev => ({
+      ...prev,
+      questions: prev.questions.filter((_, i) => i !== index)
+    }));
   };
 
   const saveQuiz = async () => {
@@ -80,7 +134,6 @@ export default function AdminView() {
         description: 'Quiz saved successfully'
       });
       
-      // Reset form and refresh quiz list
       setQuizSet({
         quizId: crypto.randomUUID(),
         title: '',
@@ -116,15 +169,15 @@ export default function AdminView() {
     }
   };
 
-  const exportQuiz = async () => {
+  const exportQuiz = async (quiz: QuizSet) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/quiz/${quizSet.quizId}`);
+      const response = await fetch(`${API_BASE_URL}/quiz/${quiz.quizId}`);
       if (!response.ok) throw new Error('Failed to fetch quiz data');
       const data = await response.json();
       
       const dataStr = JSON.stringify(data, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      const exportFileDefaultName = `quiz-${quizSet.quizId}.json`;
+      const exportFileDefaultName = `quiz-${quiz.quizId}.json`;
 
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
@@ -146,10 +199,13 @@ export default function AdminView() {
         const text = await file.text();
         const importedQuiz = JSON.parse(text);
         
-        if (!importedQuiz.title || !Array.isArray(importedQuiz.questions)) {
-          throw new Error('Invalid quiz format');
+        if (!validateQuizStructure(importedQuiz)) {
+          throw new Error('Invalid quiz structure');
         }
 
+        // Always generate a new quizId for imported quizzes
+        const newQuizId = crypto.randomUUID();
+        
         const response = await fetch(`${API_BASE_URL}/quiz`, {
           method: 'POST',
           headers: {
@@ -157,7 +213,7 @@ export default function AdminView() {
           },
           body: JSON.stringify({
             ...importedQuiz,
-            quizId: importedQuiz.quizId || crypto.randomUUID()
+            quizId: newQuizId // Always use new ID
           }),
         });
 
@@ -165,14 +221,19 @@ export default function AdminView() {
 
         toast({
           title: 'Success',
-          description: 'Quiz imported successfully'
+          description: 'Quiz imported successfully with new ID'
         });
+
+        // Clear the file input for future imports
+        if (event.target) {
+          event.target.value = '';
+        }
 
         fetchQuizzes();
       } catch (error) {
         toast({
           title: 'Error',
-          description: 'Failed to import quiz',
+          description: error instanceof Error ? error.message : 'Failed to import quiz',
           variant: 'destructive'
         });
       }
@@ -182,25 +243,102 @@ export default function AdminView() {
   return (
     <div className="flex h-screen">
       {/* Left Side Pane - Quiz List */}
-      <div className="w-80 border-r p-4 bg-gray-50">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold mb-2">Saved Quizzes</h2>
-          <div className="text-sm text-gray-500 mb-4">{quizzes.length} quizzes available</div>
-        </div>
-        <ScrollArea className="h-[calc(100vh-120px)]">
-          <div className="space-y-2 pr-4">
-            {quizzes.map((quiz) => (
-              <Card 
-                key={quiz.quizId} 
-                className={`p-4 cursor-pointer transition-colors hover:bg-gray-100 ${quizSet.quizId === quiz.quizId ? 'border-primary' : ''}`}
-                onClick={() => setQuizSet(quiz)}
-              >
-                <h4 className="font-medium">{quiz.title}</h4>
-                <p className="text-sm text-gray-500">{quiz.questions.length} questions</p>
-              </Card>
-            ))}
+      <div className={`relative ${isLeftPaneCollapsed ? 'w-0' : 'w-80'} transition-all duration-300 ease-in-out`}>
+        <div className={`absolute inset-0 border-r bg-gray-50 ${isLeftPaneCollapsed ? 'invisible' : 'visible'}`}>
+          <div className="p-4">
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Saved Quizzes</h2>
+                <div className="text-sm text-gray-500">{quizzes.length} quizzes</div>
+              </div>
+              <div className="flex gap-2 mb-4">
+                <div className="flex-1">
+                  <Label htmlFor="import-quiz">Import Quiz File</Label>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importQuiz}
+                    className="hidden"
+                    id="import-quiz"
+                    title="Import Quiz File"
+                    aria-label="Import Quiz File"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => document.getElementById('import-quiz')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <ScrollArea className="h-[calc(100vh-180px)]">
+              <div className="space-y-2 pr-4">
+                {quizzes.map((quiz) => (
+                  <Card 
+                    key={quiz.quizId} 
+                    className={`p-4 ${quizSet.quizId === quiz.quizId ? 'border-primary' : ''}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setQuizSet(quiz)}
+                      >
+                        <h4 className="font-medium">{quiz.title}</h4>
+                        <p className="text-sm text-gray-500">{quiz.questions.length} questions</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportQuiz(quiz);
+                          }}
+                          title="Export Quiz"
+                          aria-label="Export Quiz"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteQuiz(quiz.quizId);
+                          }}
+                          title="Delete Quiz"
+                          aria-label="Delete Quiz"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
-        </ScrollArea>
+        </div>
+        {/* Collapse Toggle Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute -right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white border shadow-sm"
+          onClick={() => setIsLeftPaneCollapsed(!isLeftPaneCollapsed)}
+          title={isLeftPaneCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          aria-label={isLeftPaneCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isLeftPaneCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {/* Right Side - Quiz Editor */}
@@ -263,14 +401,28 @@ export default function AdminView() {
               <h3 className="text-lg font-semibold">Questions ({quizSet.questions.length})</h3>
               {quizSet.questions.map((q, index) => (
                 <Card key={index} className="p-4">
-                  <p className="font-medium">{q.question}</p>
-                  <ul className="list-disc pl-6 mt-2">
-                    {q.options.map((opt, optIndex) => (
-                      <li key={optIndex} className={optIndex === q.correctAnswer ? 'text-green-600 font-medium' : ''}>
-                        {opt}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="font-medium">{q.question}</p>
+                      <ul className="list-disc pl-6 mt-2">
+                        {q.options.map((opt, optIndex) => (
+                          <li key={optIndex} className={optIndex === q.correctAnswer ? 'text-green-600 font-medium' : ''}>
+                            {opt}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
+                      onClick={() => deleteQuestion(index)}
+                      title="Delete Question"
+                      aria-label="Delete Question"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>
@@ -279,31 +431,6 @@ export default function AdminView() {
             <Button onClick={saveQuiz} className="w-full" disabled={!quizSet.title || quizSet.questions.length === 0}>
               Save Quiz
             </Button>
-
-            {/* Import/Export */}
-            <div className="flex gap-4">
-              <Button onClick={exportQuiz} disabled={quizSet.questions.length === 0}>
-                Export Quiz
-              </Button>
-              <div>
-                <Label htmlFor="import-quiz" className="sr-only">Import Quiz File</Label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={importQuiz}
-                  className="hidden"
-                  id="import-quiz"
-                  aria-label="Import Quiz File"
-                  title="Import Quiz File"
-                />
-                <Button
-                  onClick={() => document.getElementById('import-quiz')?.click()}
-                  variant="outline"
-                >
-                  Import Quiz
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
