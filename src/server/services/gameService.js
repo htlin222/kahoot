@@ -1,5 +1,6 @@
 import redisClient from '../config/redis.js';
 import winston from 'winston';
+import { QuizService } from './quizService.js';
 
 const logger = winston.createLogger({
   level: 'info',
@@ -108,9 +109,10 @@ export class GameService {
       
       // Calculate scores based on answer times
       const answers = await this.getQuestionAnswers(state.currentQuestionIndex);
-      const quiz = await redisClient.get(`quiz:${state.quizId}`);
-      const quizData = JSON.parse(quiz);
-      const correctAnswer = quizData.questions[state.currentQuestionIndex].correctAnswer;
+      const quiz = await QuizService.getQuiz(state.quizId);
+      if (!quiz) throw new Error('Quiz not found');
+      
+      const correctAnswer = quiz.questions[state.currentQuestionIndex].correctAnswer;
 
       // Sort answers by time and award points
       const sortedAnswers = Object.entries(answers)

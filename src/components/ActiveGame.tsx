@@ -24,6 +24,16 @@ export function ActiveGame({
   const isLastQuestion = gameState.currentQuestionIndex >= quiz.questions.length - 1;
   const showingAnswer = gameState.status === 'answer';
 
+  // Get top 10 players sorted by score
+  const topPlayers = Object.entries(gameState.scores)
+    .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+    .slice(0, 10)
+    .map(([name, score], index) => ({
+      rank: index + 1,
+      name,
+      score
+    }));
+
   return (
     <div className="space-y-8 w-full max-w-md">
       <div className="text-right mb-4">
@@ -50,6 +60,32 @@ export function ActiveGame({
               </div>
             ))}
           </div>
+          
+          {showingAnswer && topPlayers.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Top 10 Players</h3>
+              <div className="space-y-2">
+                {topPlayers.map((player) => (
+                  <div 
+                    key={player.name}
+                    className={`flex justify-between items-center p-2 rounded-lg ${
+                      player.rank === 1 ? 'bg-yellow-100' :
+                      player.rank === 2 ? 'bg-gray-100' :
+                      player.rank === 3 ? 'bg-orange-100' :
+                      'bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold w-8">{player.rank}.</span>
+                      <span>{player.name}</span>
+                    </div>
+                    <span className="font-semibold">{player.score}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-4 mt-4">
             {!showingAnswer && (
               <Button 
@@ -62,8 +98,7 @@ export function ActiveGame({
             {showingAnswer && (
               <Button 
                 className="flex-1"
-                onClick={onNextQuestion}
-                disabled={isLastQuestion}
+                onClick={isLastQuestion ? onEndGame : onNextQuestion}
               >
                 {isLastQuestion ? 'End Quiz' : 'Next Question'}
               </Button>
@@ -72,13 +107,15 @@ export function ActiveGame({
         </Card>
       )}
 
-      <Button
-        variant="destructive"
-        className="w-full"
-        onClick={onEndGame}
-      >
-        End Game
-      </Button>
+      {!isLastQuestion && (
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={onEndGame}
+        >
+          End Game
+        </Button>
+      )}
     </div>
   );
 }
