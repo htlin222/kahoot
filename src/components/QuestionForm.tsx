@@ -8,11 +8,13 @@ import { useToast } from './ui/use-toast';
 
 interface QuestionFormProps {
   onAddQuestion: (question: Question) => void;
+  currentQuestionCount: number;  // Added to determine the next index
 }
 
-export function QuestionForm({ onAddQuestion }: QuestionFormProps) {
+export function QuestionForm({ onAddQuestion, currentQuestionCount }: QuestionFormProps) {
   const { toast } = useToast();
   const [currentQuestion, setCurrentQuestion] = useState<Question>({
+    index: currentQuestionCount,
     question: '',
     options: ['', '', '', ''],
     correctAnswer: 0
@@ -22,6 +24,7 @@ export function QuestionForm({ onAddQuestion }: QuestionFormProps) {
     if (currentQuestion.question && currentQuestion.options.every(opt => opt)) {
       onAddQuestion({ ...currentQuestion });
       setCurrentQuestion({
+        index: currentQuestionCount + 1,  // Increment index for next question
         question: '',
         options: ['', '', '', ''],
         correctAnswer: 0
@@ -37,7 +40,10 @@ export function QuestionForm({ onAddQuestion }: QuestionFormProps) {
 
   return (
     <div className="space-y-4 border p-4 rounded-lg">
-      <Label>New Question</Label>
+      <div className="flex justify-between items-center">
+        <Label>New Question</Label>
+        <span className="text-sm text-gray-500">Question #{currentQuestionCount + 1}</span>
+      </div>
       <Textarea
         value={currentQuestion.question}
         onChange={(e) => setCurrentQuestion(prev => ({ ...prev, question: e.target.value }))}

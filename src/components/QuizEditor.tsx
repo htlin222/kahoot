@@ -21,9 +21,17 @@ export function QuizEditor({ quiz, onQuizChange, onSave }: QuizEditorProps) {
   };
 
   const handleDeleteQuestion = (index: number) => {
+    // Remove the question and reindex remaining questions
+    const updatedQuestions = quiz.questions
+      .filter((_, i) => i !== index)
+      .map((q, newIndex) => ({
+        ...q,
+        index: newIndex
+      }));
+
     onQuizChange({
       ...quiz,
-      questions: quiz.questions.filter((_, i) => i !== index)
+      questions: updatedQuestions
     });
   };
 
@@ -47,7 +55,10 @@ export function QuizEditor({ quiz, onQuizChange, onSave }: QuizEditorProps) {
           </div>
 
           {/* Add Question Form */}
-          <QuestionForm onAddQuestion={handleAddQuestion} />
+          <QuestionForm 
+            onAddQuestion={handleAddQuestion} 
+            currentQuestionCount={quiz.questions.length}
+          />
 
           {/* Question List */}
           <QuestionList 

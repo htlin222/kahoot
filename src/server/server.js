@@ -142,6 +142,13 @@ if (cluster.isPrimary) {
     res.status(204).send();
   }));
 
+  // New endpoint to clear all quizzes
+  app.delete('/api/quizzes', asyncHandler(async (req, res) => {
+    await QuizService.clearAllQuizzes();
+    logger.info('All quizzes cleared');
+    res.status(204).send();
+  }));
+
   // Game Routes
   app.get('/api/teacher/pin', asyncHandler(async (req, res) => {
     const pin = await GameService.generatePin();
